@@ -1,5 +1,4 @@
-<<<<<<< HEAD
-# FuzzWord - Business Partner Name Matching Tool
+# Business Partner Name Matching Tool
 
 A Python tool for matching customer names between Oracle and SAP systems using fuzzy string matching. It finds the best matching names even when they're spelled differently or have variations.
 
@@ -19,7 +18,7 @@ A Python tool for matching customer names between Oracle and SAP systems using f
 - [Preparing Your Data](#preparing-your-data)
 - [Running the Program](#running-the-program)
 - [Understanding the Output](#understanding-the-output)
-- [Score Interpretation Guide](#score-interpretation-guide)
+- [How Scoring Works](#how-scoring-works)
 - [Troubleshooting](#troubleshooting)
 - [Deactivating Virtual Environment](#deactivating-virtual-environment)
 - [Technical Details](#technical-details)
@@ -336,14 +335,166 @@ The program creates `Match_Result_Final.xlsx` with the following columns:
 
 ---
 
-## Score Interpretation Guide
+## How Scoring Works
 
-| Score Range | Meaning | Recommendation |
-|-------------|---------|----------------|
-| **90-100** | Excellent match | High confidence - recommended to use |
-| **80-89** | Good match | Should verify before using |
-| **70-79** | Moderate match | Needs careful review |
-| **Below 70** | Poor match | Likely not the same entity |
+### The Algorithm: Token Sort Ratio
+
+This program uses **Token Sort Ratio** algorithm based on **Levenshtein Distance** (edit distance).
+
+#### What is Levenshtein Distance?
+
+Levenshtein Distance counts the **minimum number of single-character edits** needed to transform one string into another:
+- **Insert** a character
+- **Delete** a character
+- **Replace** a character
+
+#### Score Formula
+
+```
+Score = (1 - (edit_distance / max_length)) × 100
+```
+
+Where:
+- `edit_distance` = number of edits needed
+- `max_length` = length of the longer string
+
+---
+
+### Scoring Examples
+
+#### Example 1: Exact Match
+```
+String A: "abc company"
+String B: "abc company"
+
+Edit distance: 0 (no changes needed)
+Score: (1 - 0/11) × 100 = 100
+```
+
+#### Example 2: One Character Different
+```
+String A: "abc company"
+String B: "abd company"
+           ↑ (c → d = 1 replacement)
+
+Edit distance: 1
+Max length: 11
+Score: (1 - 1/11) × 100 = 91
+```
+
+#### Example 3: One Character Missing
+```
+String A: "abc company"
+String B: "ab company"
+           ↑ (missing 'c' = 1 deletion)
+
+Edit distance: 1
+Max length: 11
+Score: (1 - 1/11) × 100 = 91
+```
+
+#### Example 4: Two Characters Different
+```
+String A: "abc company"
+String B: "xyz company"
+           ↑↑↑ (a→x, b→y, c→z = 3 replacements)
+
+Edit distance: 3
+Max length: 11
+Score: (1 - 3/11) × 100 = 73
+```
+
+#### Example 5: Different Word Order (Token Sort helps here!)
+```
+String A: "lumpini place"
+String B: "place lumpini"
+
+Token Sort process:
+1. Split into tokens: ["lumpini", "place"] and ["place", "lumpini"]
+2. Sort alphabetically: ["lumpini", "place"] and ["lumpini", "place"]
+3. Join: "lumpini place" and "lumpini place"
+4. Compare: identical!
+
+Score: 100 (Token Sort handles word order!)
+```
+
+#### Example 6: Partial Match
+```
+String A: "global tech solutions"
+String B: "global technology"
+
+Edit distance: 9 (need to change "tech solutions" → "technology")
+Max length: 21
+Score: (1 - 9/21) × 100 = 57
+```
+
+#### Example 7: Short String with Typo
+```
+String A: "sony"
+String B: "soni"
+             ↑ (y → i = 1 replacement)
+
+Edit distance: 1
+Max length: 4
+Score: (1 - 1/4) × 100 = 75
+
+Note: Short strings are more sensitive to errors!
+```
+
+#### Example 8: Long String with Typo
+```
+String A: "international business machines"
+String B: "international bussiness machines"
+                       ↑ (extra 's' = 1 insertion)
+
+Edit distance: 1
+Max length: 32
+Score: (1 - 1/32) × 100 = 97
+
+Note: Long strings are more tolerant of small errors!
+```
+
+---
+
+### Score Interpretation Guide
+
+| Score | Meaning | Example | Recommendation |
+|-------|---------|---------|----------------|
+| **100** | Perfect match | "ABC Corp" vs "ABC Corp" | Auto-accept |
+| **95-99** | Near-perfect (1 typo) | "Sony" vs "Sonny" | High confidence |
+| **90-94** | Very close (minor diff) | "Tech Co" vs "Tech Corp" | Recommended |
+| **80-89** | Good match | "Global Inc" vs "Global Ltd" | Verify before use |
+| **70-79** | Moderate match | "ABC Trading" vs "ABD Trade" | Manual review needed |
+| **60-69** | Weak match | Different but similar words | Low confidence |
+| **Below 60** | Poor match | Likely different entities | Probably not a match |
+
+---
+
+### Why String Length Matters
+
+The same number of errors has different impact based on string length:
+
+| String A | String B | Errors | Length | Score |
+|----------|----------|--------|--------|-------|
+| "ab" | "ac" | 1 | 2 | **50** |
+| "abcd" | "abce" | 1 | 4 | **75** |
+| "abcdefgh" | "abcdefgi" | 1 | 8 | **88** |
+| "abcdefghijklmnop" | "abcdefghijklmnoq" | 1 | 16 | **94** |
+
+**Key insight**: One typo in a short name hurts the score more than one typo in a long name.
+
+---
+
+### Real-World Examples
+
+| Oracle Name | SAP Name | Score | Why? |
+|-------------|----------|-------|------|
+| "Bangkok Electronics Co., Ltd." | "Bangkok Electronic Co Ltd" | **95** | Minor spelling diff |
+| "Thai Airways International" | "Thai Airway International" | **97** | Missing 's' |
+| "Central Department Store" | "Central Dept Store" | **85** | Abbreviation |
+| "Siam Commercial Bank" | "Siam Comercial Bank" | **95** | Typo in "Commercial" |
+| "True Corporation" | "True Corp" | **78** | Shortened name |
+| "PTT Public Company Limited" | "PTT PCL" | **55** | Heavy abbreviation |
 
 ---
 
@@ -417,6 +568,8 @@ python3 migrate_script.py
 2. Install dependencies again:
 ```bash
 pip install -r requirements.txt
+
+python migrate_script.py
 ```
 
 ---
@@ -463,7 +616,7 @@ The `(.venv)` prefix will disappear from your prompt.
 The program uses **Token Sort Ratio** from the FuzzyWuzzy library:
 - Splits strings into tokens (words)
 - Sorts tokens alphabetically
-- Compares sorted strings
+- Compares sorted strings using Levenshtein distance
 - This handles word order differences (e.g., "ABC Company" matches "Company ABC")
 
 ### Text Cleaning
@@ -471,11 +624,25 @@ The program uses **Token Sort Ratio** from the FuzzyWuzzy library:
 Before comparison, text is cleaned by:
 1. Converting to lowercase
 2. Removing periods (`.`) and spaces
-3. Removing common Thai business terms:
-   - Company prefixes: `บริษัท`, `บจก`, `หจก`, `บมจ`, `หสน`
-   - Suffixes: `จำกัด`
-   - Titles: `คุณ`, `นาง`, `นาย`
-   - Other: `ร้าน`
+3. Removing common Thai business terms (these are stripped to improve matching accuracy):
+
+| Thai Term | English Equivalent | Meaning |
+|-----------|-------------------|---------|
+| `บริษัท` | Company / Co. | Company |
+| `บจก` | Co., Ltd. | Company Limited (abbreviation) |
+| `จำกัด` | Limited / Ltd. | Limited |
+| `หจก` | Ltd. Part. | Limited Partnership |
+| `บมจ` | PCL / PLC | Public Company Limited |
+| `หสน` | Reg. Ord. Part. | Registered Ordinary Partnership |
+| `คุณ` | Mr./Ms./Mrs. | Polite title prefix |
+| `นาง` | Mrs. | Mrs. (married woman) |
+| `นาย` | Mr. | Mr. (man) |
+| `ร้าน` | Shop / Store | Shop/Store |
+
+**Why remove these terms?**
+- "บริษัท ABC จำกัด" and "ABC Co., Ltd." should match
+- Without cleaning, the Thai prefix/suffix would reduce the similarity score
+- After cleaning, both become just "ABC" → perfect match!
 
 ### Dependencies
 
@@ -548,7 +715,3 @@ If you encounter issues not covered in this guide, please check:
 1. Python version (`python --version` or `python3 --version`)
 2. All dependencies are installed (`pip list`)
 3. Input file format matches the required structure
-=======
-# Business-Partner-Name-Matching-Tool
-A Python tool for matching customer names between Oracle and SAP systems using fuzzy string matching. It finds the best matching names even when they're spelled differently or have variations.
->>>>>>> 52804a40bf387ee723b1094f853784cd24541ace
