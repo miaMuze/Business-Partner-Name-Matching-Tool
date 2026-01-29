@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # FuzzWord - Business Partner Name Matching Tool
 
 A Python tool for matching customer names between Oracle and SAP systems using fuzzy string matching. It finds the best matching names even when they're spelled differently or have variations.
@@ -547,3 +548,7 @@ If you encounter issues not covered in this guide, please check:
 1. Python version (`python --version` or `python3 --version`)
 2. All dependencies are installed (`pip list`)
 3. Input file format matches the required structure
+=======
+# Business-Partner-Name-Matching-Tool
+A Python tool for matching customer names between Oracle and SAP systems using fuzzy string matching. It finds the best matching names even when they're spelled differently or have variations.
+>>>>>>> 52804a40bf387ee723b1094f853784cd24541ace
