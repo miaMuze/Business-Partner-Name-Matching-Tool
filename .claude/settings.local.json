@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python create_sample_data.py:*)",
+      "Bash(where:*)",
+      "Bash(pip show:*)",
+      "Bash(findstr:*)",
+      "Bash(dir:*)",
+      "Bash(.venvScriptspip install thefuzz python-Levenshtein pandas openpyxl)",
+      "Bash(C:UsersLemonDesktopfuzzword.venvScriptspip.exe install thefuzz python-Levenshtein pandas openpyxl)",
+      "Bash(git reset:*)",
+      "Bash(git add:*)",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nConvert project to English version\n\n- Update README.md with comprehensive English documentation\n- Convert all comments and log messages to English\n- Add English business terms to text cleaning \\(Ltd, Corp, Inc, etc.\\)\n- Add .gitignore to exclude .venv and cache files\n- Add create_sample_data.py for generating sample Excel data\n- Update sample data to English\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(git push:*)"
+    ]
+  }
+}
